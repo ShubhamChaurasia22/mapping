@@ -7,7 +7,7 @@ const EnterOpponentModal = ({ isOpen, onClose, onSubmit }) => {
   const handleSubmit = () => {
     if (opponent.name && opponent.query) {
       onSubmit(opponent);
-      setOpponent({ name: '', query: '' }); // Clear the opponent state after submission
+      setOpponent({ name: '', query: '' });
     }
   };
 

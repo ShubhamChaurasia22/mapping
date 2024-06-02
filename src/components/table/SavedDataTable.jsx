@@ -2,7 +2,6 @@ import React from 'react';
 import { Table, Thead, Tbody, Tr, Th, Td, Button } from '@chakra-ui/react';
 
 const SavedDataTable = ({ data, opponentsData }) => {
-  // Function to generate opponent links
   const generateOpponentLinks = (productTitle, upc) => {
     return opponentsData.map((opponent, index) => {
       const productTitleLink = opponent.query + encodeURIComponent(productTitle);
@@ -24,7 +23,6 @@ const SavedDataTable = ({ data, opponentsData }) => {
     });
   };
 
-  // Function to prepend "http://" if URL is not absolute
   const prependHTTP = (url) => {
     if (!/^https?:\/\//i.test(url)) {
       return `http://${url}`;

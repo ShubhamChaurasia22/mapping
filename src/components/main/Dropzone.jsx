@@ -1,26 +1,42 @@
-import { useCallback, useState, useEffect } from 'react';
+import { useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Box, Text, Button, VStack, HStack, Wrap } from '@chakra-ui/react';
 import EnterDataModal from '../modal/EnterDataModal';
 import EnterOpponentModal from '../modal/EnterOpponentModal';
 import SavedDataTable from '../table/SavedDataTable';
 import * as XLSX from 'xlsx';
+import { useDispatch, useSelector } from 'react-redux';
+import {
+  setUrls,
+  setFileUploaded,
+  setFileName,
+  setShowDataModal,
+  addSavedData,
+  addOpponentData,
+  toggleShowTable,
+  setShowOpponentModal,
+  reset,
+  setShowUrls,
+} from '../../slices/dataSlice';
 
 const Dropzone = () => {
-  const [urls, setUrls] = useState([]);
-  const [fileUploaded, setFileUploaded] = useState(false);
-  const [showUrls, setShowUrls] = useState(false);
-  const [fileName, setFileName] = useState("");
-  const [showDataModal, setShowDataModal] = useState(false);
-  const [savedData, setSavedData] = useState([]);
-  const [opponentsData, setOpponentsData] = useState([]);
-  const [showTable, setShowTable] = useState(false);
-  const [showOpponentModal, setShowOpponentModal] = useState(false);
+  const dispatch = useDispatch();
+  const {
+    urls,
+    fileUploaded,
+    fileName,
+    showDataModal,
+    savedData,
+    opponentsData,
+    showTable,
+    showOpponentModal,
+    showUrls,
+  } = useSelector((state) => state.data);
 
   const onDrop = useCallback((acceptedFiles) => {
     const file = acceptedFiles[0];
-    setFileName(file.name);
-    console.log("File dropped:", file); // Debugging line
+    dispatch(setFileName(file.name));
+    console.log("File dropped:", file);
 
     const reader = new FileReader();
 
@@ -30,17 +46,16 @@ const Dropzone = () => {
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
       const jsonData = XLSX.utils.sheet_to_json(worksheet);
-      console.log("JSON Data:", jsonData); // Debugging line
+      console.log("JSON Data:", jsonData);
 
-      // Adjust the column name to match your Excel file
       const urlColumn = jsonData.map(row => row.URL).filter(Boolean);
-      console.log("Extracted URLs:", urlColumn); // Debugging line
-      setUrls(urlColumn);
-      setFileUploaded(true);
+      console.log("Extracted URLs:", urlColumn);
+      dispatch(setUrls(urlColumn));
+      dispatch(setFileUploaded(true));
     };
 
     reader.readAsArrayBuffer(file);
-  }, []);
+  }, [dispatch]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -48,55 +63,40 @@ const Dropzone = () => {
   });
 
   const handleReset = () => {
-    setUrls([]);
-    setFileUploaded(false);
-    setShowUrls(false);
-    setFileName("");
-    setShowTable(false);
-    setShowDataModal(false);
-    setShowOpponentModal(false);
-    setSavedData([]);
-    setOpponentsData([]);
+    dispatch(reset());
   };
 
   const handleStart = () => {
-    setShowUrls(true);
+    dispatch(setShowUrls(true));
   };
 
   const handleDataSubmit = (data) => {
-    setSavedData([...savedData, data]);
-    setShowDataModal(false); // Close the data modal after submission
+    dispatch(addSavedData(data));
+    dispatch(setShowDataModal(false));
   };
 
   const handleShowOpponentModal = () => {
-    setShowOpponentModal(true);
+    dispatch(setShowOpponentModal(true));
   };
 
   const handleEnterData = () => {
-    setShowDataModal(true); // Show the data modal when clicking Enter Data button
-    setShowTable(false); // Hide the table when clicking Enter Data button
+    dispatch(setShowDataModal(true));
   };
 
-  const handleShowTable = () => {
-    setShowTable(!showTable);
-    setShowDataModal(false);
-    setShowOpponentModal(false);
+  const handleToggleTable = () => {
+    dispatch(toggleShowTable());
   };
 
   const handleOpponentsSubmit = (data) => {
-    setOpponentsData([...opponentsData, data]);
-    setShowOpponentModal(false); // Close the opponent modal after submission
+    dispatch(addOpponentData(data));
+    dispatch(setShowOpponentModal(false));
   };
-
-  useEffect(() => {
-    console.log("Opponents Data:", opponentsData);
-  }, [opponentsData]);
 
   return (
     <Box>
       {!fileUploaded ? (
         <Box
-        className="dropzone"
+          className="dropzone"
           width="100%"
           mx="auto"
           mt="2rem"
@@ -136,24 +136,22 @@ const Dropzone = () => {
         </HStack>
       )}
       {showUrls && (
-        <Wrap spacing={4} mt="2rem" justify="center">
-          {urls.map((url, index) => (
-            <Button
-              key={index}
-              as="a"
-              href={url}
-              target="_blank"
-              rel="noopener noreferrer"
-              colorScheme="teal"
-              variant="outline"
-            >
-              {`Button URL ${index+1}`}
-            </Button>
-          ))}
-        </Wrap>
-      )}
-      {showUrls && (
         <VStack spacing={4} mt="2rem">
+          <Wrap spacing={4} justify="center">
+            {urls.map((url, index) => (
+              <Button
+                key={index}
+                as="a"
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                colorScheme="teal"
+                variant="outline"
+              >
+                {`Button URL ${index + 1}`}
+              </Button>
+            ))}
+          </Wrap>
           <HStack spacing={4}>
             <Button onClick={handleShowOpponentModal} colorScheme="teal">
               Enter Opponents
@@ -161,12 +159,12 @@ const Dropzone = () => {
             <Button onClick={handleEnterData} colorScheme="teal">
               Enter Data
             </Button>
-            <Button onClick={handleShowTable} colorScheme="teal">
+            <Button onClick={handleToggleTable} colorScheme="teal">
               {showTable ? 'Hide Table' : 'Show Table'}
             </Button>
           </HStack>
-          <EnterOpponentModal isOpen={showOpponentModal} onClose={() => setShowOpponentModal(false)} onSubmit={handleOpponentsSubmit} />
-          <EnterDataModal isOpen={showDataModal} onClose={() => setShowDataModal(false)} onSubmit={handleDataSubmit} />
+          <EnterOpponentModal isOpen={showOpponentModal} onClose={() => dispatch(setShowOpponentModal(false))} onSubmit={handleOpponentsSubmit} />
+          <EnterDataModal isOpen={showDataModal} onClose={() => dispatch(setShowDataModal(false))} onSubmit={handleDataSubmit} />
           {showTable && <SavedDataTable data={savedData} opponentsData={opponentsData} />}
           <Button onClick={handleReset} colorScheme="red">
             Reset
